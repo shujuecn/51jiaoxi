@@ -1,5 +1,10 @@
 #!/usr/local/bin/python3
 # -*- encoding: utf-8 -*-
+'''
+@Brief  : 下载教习网(www.51jiaoxi.com)的成套试卷
+@Time   : 2022/10/03 07:55:16
+@Author : https://github.com/shujuecn
+'''
 
 import requests
 from lxml import etree
@@ -9,6 +14,8 @@ import os
 def get_doc_url(url):
     '''
     获取分试卷的详细页链接
+    @url: 成套试卷的链接
+    @return: 分试卷的详细页链接
     '''
 
     headers = {
@@ -31,7 +38,8 @@ def get_doc_url(url):
 
 def jpg2pdf(doc_id):
     '''
-    将jpg转换为pdf
+    将多张jpg合并输出为pdf
+    @doc_id: 试卷代号, 作为输出pdf的文件名
     '''
 
     # 如果没有名为output的文件夹，则新建
@@ -41,26 +49,32 @@ def jpg2pdf(doc_id):
     # 进入doc_id文件夹
     os.chdir(doc_id)
 
+    jpg_list = []
     # 遍历该文件夹下的所有文件
     for i in os.listdir():
-        # 如果是jpg文件
         if os.path.splitext(i)[1] == ".jpg":
-            # 将jpg转换为pdf
-            os.system(f"magick {i} {i[:-4]}.pdf")
+            jpg_list.append(i)
 
-    # 将该文件夹下的所有pdf文件合并为一个
-    os.system(f"magick convert *.pdf {doc_id}.pdf")
+    # 将jpg文件按照文件名排序
+    jpg_list.sort()
+    jpg_list = " ".join(jpg_list)
+    # 将jpg文件合并为pdf
+    os.system(f"magick {jpg_list} {doc_id}.pdf")
+
     # 将该文件夹下的所有pdf文件移动到output文件夹下
     os.system(f"mv {doc_id}.pdf ../output")
+
     # 返回上一级目录
     os.chdir("..")
     # 删除doc_id文件夹
     os.system(f"rm -r {doc_id}")
 
 
-def get_png(doc_url):
+def get_jpg(doc_url):
     '''
     遍历每套试卷的详细页，下载图片
+    @doc_url: 分试卷的详细页链接
+    @return: 试卷代号列表
     '''
 
     # 遍历每套试卷的详细页
@@ -108,29 +122,36 @@ def get_png(doc_url):
             jpg_url = f"{jpg_url_prefix}/0/{j}.jpg?x-oss-process=image/crop,h_1044,g_center/format,webp"
 
             # 下载图片
-            response = requests.get(url=jpg_url, headers=headers)
-            # 将图片保存到doc_id文件夹下
-            with open(f"{doc_id}/{j}.jpg", "wb") as f:
-                f.write(response.content)
+            try:
+                response = requests.get(url=jpg_url, headers=headers)
+                # 将图片保存到doc_id文件夹下
+                with open(f"{doc_id}/{j}.jpg", "wb") as f:
+                    f.write(response.content)
+            except Exception as e:
+                print(e)
+                print("图片下载失败")
 
         print("下载完成!")
+        print("正在转换为pdf...")
 
-        print("正在转换为PDF...")
-        # 转换为PDF
         jpg2pdf(doc_id)
 
         print("转换完成!")
+
+        # 打印进度
+        print(f"已完成: {doc_url.index(i) + 1}/{len(doc_url)}")
 
     print("\n全部下载完毕！\n")
 
 
 def main():
+
     url = input("\n请输入成套试卷链接: ")
     # url = "https://www.51jiaoxi.com/album-24388.html"
     # url = "https://www.51jiaoxi.com/album-18400.html"
 
     doc_url = get_doc_url(url)
-    get_png(doc_url)
+    get_jpg(doc_url)
 
 
 if __name__ == "__main__":
