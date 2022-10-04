@@ -95,67 +95,60 @@ def get_jpg(doc_url):
         # 解析html
         html = etree.HTML(response)
 
-        if html:
+        # 该试卷代号
+        doc_id = url.split("-")[1].split(".")[0]
 
-            # 该试卷代号
-            doc_id = url.split("-")[1].split(".")[0]
+        # 该试卷图片的链接（示例）
+        jpg_url = html.xpath("//div[@class='img-box']/img/@src")
+        # 试卷图片链接前缀
+        jpg_url_split = jpg_url[0].split("/")
+        jpg_url_prefix = f"https://{jpg_url_split[2]}/{jpg_url_split[3]}/{jpg_url_split[4]}/{jpg_url_split[5]}"
 
-            # 该试卷图片的链接（示例）
-            jpg_url = html.xpath("//div[@class='img-box']/img/@src")
-            # 试卷图片链接前缀
-            jpg_url_split = jpg_url[0].split("/")
-            jpg_url_prefix = f"https://{jpg_url_split[2]}/{jpg_url_split[3]}/{jpg_url_split[4]}/{jpg_url_split[5]}"
+        # 起始页码
+        start_page_num = int(jpg_url[0].split(".")[2].split("/")[-1])
 
-            # 起始页码
-            start_page_num = int(jpg_url[0].split(".")[2].split("/")[-1])
+        # 显示的页数
+        show_page_num = len(jpg_url)
 
-            # 显示的页数
-            show_page_num = len(jpg_url)
+        # 试卷未显示的页数
+        try:
+            no_show_page_num = html.xpath(
+                "//div[@class='remain-previews-inner']/span/span/text()")[0]
+        except:
+            no_show_page_num = 0
 
-            # 试卷未显示的页数
+        # 总页数
+        all_page_num = int(show_page_num) + int(no_show_page_num)
+
+        # 如果没有名称为doc_id的文件夹，则创建
+        if not os.path.exists(doc_id):
+            os.mkdir(doc_id)
+
+        print("\n正在下载试卷: {}...".format(doc_id))
+
+        # 遍历每张图片
+        for j in range(start_page_num, int(all_page_num)):
+
+            # 构建图片链接
+            jpg_url = f"{jpg_url_prefix}/0/{j}.jpg?x-oss-process=image/crop,h_1044,g_center/format,webp"
+
+            # 下载图片
             try:
-                no_show_page_num = html.xpath(
-                    "//div[@class='remain-previews-inner']/span/span/text()"
-                )[0]
-            except IndexError:
-                no_show_page_num = 0
+                response = requests.get(url=jpg_url, headers=headers)
+                # 将图片保存到doc_id文件夹下
+                with open(f"{doc_id}/{j}.jpg", "wb") as f:
+                    f.write(response.content)
+            except Exception as e:
+                print(e)
+                print("图片下载失败")
 
-            # 总页数
-            all_page_num = int(show_page_num) + int(no_show_page_num)
+        print("下载完成!")
 
-            # 如果没有名称为doc_id的文件夹，则创建
-            if not os.path.exists(doc_id):
-                os.mkdir(doc_id)
+        print("正在转换为pdf...")
+        jpg2pdf(doc_id)
 
-            print("\n正在下载试卷: {}...".format(doc_id))
-
-            # 遍历每张图片
-            for j in range(start_page_num, int(all_page_num)):
-
-                # 构建图片链接
-                jpg_url = f"{jpg_url_prefix}/0/{j}.jpg?x-oss-process=image/crop,h_1044,g_center/format,webp"
-
-                # 下载图片
-                try:
-                    response = requests.get(url=jpg_url, headers=headers)
-                    # 将图片保存到doc_id文件夹下
-                    with open(f"{doc_id}/{j}.jpg", "wb") as f:
-                        f.write(response.content)
-                except Exception as e:
-                    print(e)
-                    print("图片下载失败")
-
-            print("下载完成!")
-
-            print("正在转换为pdf...")
-            jpg2pdf(doc_id)
-
-            # 打印进度
-            print(
-                f"已完成: \033[1;34m{doc_url.index(i) + 1}/{len(doc_url)}\033[0m")
-
-        else:
-            print("解析失败")
+        # 打印进度
+        print(f"已完成: \033[1;34m{doc_url.index(i) + 1}/{len(doc_url)}\033[0m")
 
     print("\n全部下载完毕！\n")
 
