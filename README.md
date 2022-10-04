@@ -23,3 +23,7 @@ $ python3 51jiaoxi.py
 
 输入成套试卷链接后，Enter...
 
+## Bug
+
+- 当成套资料的详细页面中包含多个文件时，仅能下载首个文件，例如：[示例页面](https://www.51jiaoxi.com/doc-13446122.html)。
+
