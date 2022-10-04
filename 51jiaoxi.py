@@ -23,17 +23,22 @@ def get_doc_url(url):
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36 Edg/105.0.1343.53"
     }
 
-    response = requests.get(url=url, headers=headers)
+    try:
+        response = requests.get(url=url, headers=headers)
 
-    if response.status_code == 200:
+        if response.status_code == 200:
 
-        html = response.text
-        all_doc_page = etree.HTML(html)
+            html = response.text
+            all_doc_page = etree.HTML(html)
 
-        doc_url = all_doc_page.xpath(
-            "//div[@class='list-bd']//div[@class='title fl']/a/@href")
+            doc_url = all_doc_page.xpath(
+                "//div[@class='list-bd']//div[@class='title fl']/a/@href")
 
-        return doc_url
+            return doc_url
+
+    except Exception as e:
+        print("\033[31m请求失败，请检查URL和网络环境!\033[0m")
+        print(e)
 
 
 def jpg2pdf(doc_id):
@@ -156,6 +161,12 @@ def get_jpg(doc_url):
 def main():
 
     url = input("\n请输入成套试卷链接: ")
+
+    # 如果url中没有album，重新输入
+    while "album" not in url:
+        print("\033[31m不是成套试卷链接，请重新输入!\033[0m")
+        url = input("\n请输入成套试卷链接: ")
+
     # url = "https://www.51jiaoxi.com/album-24388.html"
     # url = "https://www.51jiaoxi.com/album-18400.html"
 
